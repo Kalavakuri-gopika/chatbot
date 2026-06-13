@@ -103,7 +103,8 @@ class ChromaDBService:
     def __init__(self):
         self.db_dir = settings.CHROMA_DB_DIR
         self.fallback_db_path = os.path.join(settings.DATA_DIR, "fallback_vector_db.json")
-        self.use_fallback = not CHROMA_AVAILABLE
+        is_render = os.environ.get("RENDER", "false").lower() == "true"
+        self.use_fallback = not CHROMA_AVAILABLE or is_render or os.environ.get("USE_FALLBACK_VECTOR_DB", "false").lower() == "true"
         self.embeddings = None
         self.chroma_client = None
         self.collection = None
