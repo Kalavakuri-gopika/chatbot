@@ -17,3 +17,5 @@ huggingface-hub>=1.0.0
 transformers>=4.40.0
 email-validator>=2.0.0
 google-generativeai>=0.7.0
+aiofiles>=23.0.0
+

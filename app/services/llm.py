@@ -560,17 +560,13 @@ class ConversationalLLMService:
         if self.hf_client:
             try:
                 hf_model = os.environ.get("HUGGINGFACE_MODEL", settings.HUGGINGFACE_MODEL)
-                logger.info(f"Calling HuggingFace InferenceClient model '{hf_model}'...")
-                response = self.hf_client.text_generation(
-                    prompt,
-                    max_new_tokens=512,
+                logger.info(f"Calling HuggingFace InferenceClient model '{hf_model}' (chat_completion)...")
+                response = self.hf_client.chat_completion(
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=512,
                     temperature=0.3,
-                    do_sample=True,
-                    stop_sequences=["\nUser Query:", "\n\nUser:"],
                 )
-                generated = response if isinstance(response, str) else str(response)
-                if generated.startswith(prompt):
-                    generated = generated[len(prompt):]
+                generated = response.choices[0].message.content
                 return generated.strip()
             except Exception as e:
                 logger.error(f"HuggingFace InferenceClient call failed: {e}. Using fallback.")
@@ -719,17 +715,13 @@ class ConversationalLLMService:
                 prompt += f"User Query: {query}\nAnswer:"
 
                 hf_model = os.environ.get("HUGGINGFACE_MODEL", settings.HUGGINGFACE_MODEL)
-                logger.info(f"Calling HuggingFace InferenceClient to check/extract answer from PDF...")
-                response = self.hf_client.text_generation(
-                    prompt,
-                    max_new_tokens=256,
-                    temperature=0.0,
-                    do_sample=False,
-                    stop_sequences=["\nUser Query:", "\n\nUser:"],
+                logger.info(f"Calling HuggingFace InferenceClient to check/extract answer from PDF (chat_completion)...")
+                response = self.hf_client.chat_completion(
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=256,
+                    temperature=0.01,
                 )
-                generated = response if isinstance(response, str) else str(response)
-                if generated.startswith(prompt):
-                    generated = generated[len(prompt):]
+                generated = response.choices[0].message.content
                 generated_clean = generated.strip()
 
                 if "NOT_FOUND" in generated_clean or generated_clean.upper() == "NOT FOUND":

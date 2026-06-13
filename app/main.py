@@ -164,3 +164,14 @@ def seed_database():
 @app.on_event("startup")
 def startup_event():
     seed_database()
+
+import os
+from fastapi.staticfiles import StaticFiles
+
+# Serve compiled frontend static files from /
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist"))
+if os.path.exists(frontend_dist):
+    logger.info(f"Mounting frontend static files from: {frontend_dist}")
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
+else:
+    logger.warning(f"Frontend static files directory not found at: {frontend_dist}. UI will not be served from backend.")

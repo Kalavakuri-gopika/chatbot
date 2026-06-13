@@ -1,0 +1,13 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.gitignore
+data/
+db.sqlite3
+omc_chatbot.db
+chroma_db/
+uploads/
