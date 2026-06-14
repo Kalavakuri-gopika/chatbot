@@ -3,21 +3,40 @@ import json
 import logging
 import re
 from typing import List, Dict, Any, Tuple
-from langchain_core.documents import Document
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Try importing Chroma and HuggingFace embeddings
+# Render auto-defines the RENDER environment variable to 'true'
+is_render = os.environ.get("RENDER", "false").lower() == "true" or os.environ.get("RENDER") is not None
+force_fallback = os.environ.get("USE_FALLBACK_VECTOR_DB", "false").lower() == "true"
+
 CHROMA_AVAILABLE = False
-try:
-    import chromadb
-    from chromadb.config import Settings as ChromaSettings
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-    CHROMA_AVAILABLE = True
-    logger.info("ChromaDB and HuggingFaceEmbeddings successfully imported.")
-except ImportError as e:
-    logger.warning(f"Failed to import ChromaDB or HuggingFaceEmbeddings: {str(e)}. Using fallback JSON database.")
+Document = None
+
+if not is_render and not force_fallback:
+    try:
+        import chromadb
+        from chromadb.config import Settings as ChromaSettings
+        from langchain_community.embeddings import HuggingFaceEmbeddings
+        from langchain_core.documents import Document
+        CHROMA_AVAILABLE = True
+        logger.info("ChromaDB and HuggingFaceEmbeddings successfully imported.")
+    except ImportError as e:
+        logger.warning(f"Failed to import ChromaDB or HuggingFaceEmbeddings: {str(e)}. Using fallback JSON database.")
+else:
+    logger.info("Render environment or forced fallback detected. Skipping heavy ML imports to save memory.")
+
+if Document is None:
+    # Zero-dependency lightweight Document fallback
+    class Document:
+        def __init__(self, page_content: str, metadata: dict = None):
+            self.page_content = page_content
+            self.metadata = metadata or {}
+            
+        def __repr__(self):
+            return f"Document(page_content={self.page_content[:30]}..., metadata={self.metadata})"
+
 
 class FallbackVectorStore:
     """A zero-dependency local text search database that mimics a Vector DB using Jaccard Similarity & term frequency."""
@@ -103,8 +122,7 @@ class ChromaDBService:
     def __init__(self):
         self.db_dir = settings.CHROMA_DB_DIR
         self.fallback_db_path = os.path.join(settings.DATA_DIR, "fallback_vector_db.json")
-        is_render = os.environ.get("RENDER", "false").lower() == "true"
-        self.use_fallback = not CHROMA_AVAILABLE or is_render or os.environ.get("USE_FALLBACK_VECTOR_DB", "false").lower() == "true"
+        self.use_fallback = not CHROMA_AVAILABLE
         self.embeddings = None
         self.chroma_client = None
         self.collection = None
